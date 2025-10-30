@@ -11,9 +11,10 @@ import requests
 from xml.etree import ElementTree
 import os
 import time
+from pathlib import Path
 
 
-md_iid = "3.0"
+md_iid = "4.0"
 md_version = "0.5"
 md_name = "Linguee"
 md_description = "Translate with Linguee."
@@ -25,13 +26,11 @@ class Plugin(PluginInstance, TriggerQueryHandler):
 
     lang = "deutsch-englisch"
     user_agent = "org.albert.linguee"
+    icon = Path(__file__).parent / "linguee.svg"
 
     def __init__(self):
         TriggerQueryHandler.__init__(self)
         PluginInstance.__init__(self)
-        self.iconUrls = [
-            os.path.join(os.path.dirname(__file__), "linguee.svg")
-        ]
 
     def synopsis(self, query):
         return "<lin phrase>"
@@ -55,10 +54,10 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                 results.append(
                     StandardItem(
                         id=result["word"],
-                        iconUrls=self.iconUrls,
+                        icon_factory=lambda: makeImageIcon(self.icon),
                         text=result["word"],
                         subtext=", ".join(result["translations"]),
-                        inputActionText=result["word"],
+                        input_action_text=result["word"],
                         actions=[
                             Action(
                                 "open",
@@ -80,7 +79,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                 id="lin",
                 text=md_name,
                 subtext="Enter a word to translate",
-                iconUrls=self.iconUrls,
+                icon_factory=lambda: makeImageIcon(self.icon),
             ))
 
     def get_suggestions(self, query):
