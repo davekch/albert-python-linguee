@@ -6,31 +6,37 @@ translate ger-eng with linguee
 Synopsis: <trigger> <word>"""
 
 
-from albert import *
+from albert import (
+    PluginInstance,
+    GeneratorQueryHandler,
+    Icon,
+    StandardItem,
+    Action,
+    openUrl,
+    setClipboardText,
+)
 import requests
 from xml.etree import ElementTree
-import os
 import time
 from pathlib import Path
 
 
-md_iid = "4.0"
-md_version = "0.5"
+md_iid = "5.0"
+md_version = "0.6"
 md_name = "Linguee"
 md_description = "Translate with Linguee."
-md_maintainers = "@davekch"
+md_maintainers = ["@davekch"]
 md_lib_dependencies = ["requests"]
 
 
-class Plugin(PluginInstance, TriggerQueryHandler):
+class Plugin(PluginInstance, GeneratorQueryHandler):
 
     lang = "deutsch-englisch"
     user_agent = "org.albert.linguee"
-    icon = Path(__file__).parent / "linguee.svg"
 
     def __init__(self):
-        TriggerQueryHandler.__init__(self)
         PluginInstance.__init__(self)
+        GeneratorQueryHandler.__init__(self)
 
     def synopsis(self, query):
         return "<lin phrase>"
@@ -38,10 +44,14 @@ class Plugin(PluginInstance, TriggerQueryHandler):
     def defaultTrigger(self):
         return "lin "
 
-    def handleTriggerQuery(self, query):
-        querystr = query.string.strip()
+    @staticmethod
+    def makeIcon():
+        return Icon.image(Path(__file__).parent / "linguee.svg")
+
+    def items(self, context):
+        querystr = context.query.strip()
         if querystr:
-            if not query.isValid:
+            if not context.isValid:
                 return
 
             time.sleep(0.1)
@@ -54,7 +64,7 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                 results.append(
                     StandardItem(
                         id=result["word"],
-                        icon_factory=lambda: makeImageIcon(self.icon),
+                        icon_factory=Plugin.makeIcon,
                         text=result["word"],
                         subtext=", ".join(result["translations"]),
                         input_action_text=result["word"],
@@ -67,20 +77,20 @@ class Plugin(PluginInstance, TriggerQueryHandler):
                             Action(
                                 "copy",
                                 "Copy url to clipboard",
-                                lambda u=url: setClipBoardText(u)
+                                lambda u=url: setClipboardText(u)
                             ),
                         ],
                     )
                 )
-            query.add(results)
+            yield results
 
         else:
-            query.add(StandardItem(
+            yield [StandardItem(
                 id="lin",
                 text=md_name,
                 subtext="Enter a word to translate",
-                icon_factory=lambda: makeImageIcon(self.icon),
-            ))
+                icon_factory=Plugin.makeIcon,
+            )]
 
     def get_suggestions(self, query):
         response = requests.get(
@@ -127,4 +137,3 @@ def get_results(linguee_response):
         results.append({"word": word, "translations": translations})
 
     return results
-
