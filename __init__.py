@@ -32,6 +32,7 @@ md_lib_dependencies = ["requests"]
 class Plugin(PluginInstance, GeneratorQueryHandler):
 
     lang = "deutsch-englisch"
+    base_url = "https://www.linguee.de"
     user_agent = "org.albert.linguee"
 
     def __init__(self):
@@ -90,7 +91,7 @@ class Plugin(PluginInstance, GeneratorQueryHandler):
 
     def get_suggestions(self, query):
         response = requests.get(
-            "https://www.linguee.de/" + self.lang + "/search?",
+            self.base_url + "/" + self.lang + "/search?",
             # change the ch-parameter to get more/less results
             params={"qe": query, "source": "auto", "cw": "820", "ch": "1000"},
             headers={"User-Agent": self.user_agent}
@@ -109,9 +110,9 @@ class Plugin(PluginInstance, GeneratorQueryHandler):
                 for translation_item in translation_row[0]:
                     translations.append(get_display_text(translation_item))
 
-            url = "https://www.linguee.de" + (
+            url = self.base_url + (
                 item[0][0].attrib.get("href")
-                or "{}/search?source=auto&query={}".format(self.lang, word)  # if there is no link, construct one
+                or "/{}/search?source=auto&query={}".format(self.lang, word)  # if there is no link, construct one
             )
             results.append({"word": word, "translations": translations, "url": url})
 
