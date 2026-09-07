@@ -22,7 +22,7 @@ from pathlib import Path
 
 
 md_iid = "5.0"
-md_version = "0.6"
+md_version = "0.7"
 md_name = "Linguee"
 md_description = "Translate with Linguee."
 md_maintainers = ["@davekch"]
