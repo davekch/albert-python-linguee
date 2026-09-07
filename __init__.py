@@ -57,10 +57,6 @@ class Plugin(PluginInstance, GeneratorQueryHandler):
             time.sleep(0.1)
             results = []
             for result in self.get_suggestions(querystr):
-                url = "http://www.linguee.de/{}/search?source=auto&query={}".format(
-                    self.lang,
-                    result["word"]
-                )
                 results.append(
                     StandardItem(
                         id=result["word"],
@@ -72,12 +68,12 @@ class Plugin(PluginInstance, GeneratorQueryHandler):
                             Action(
                                 "open",
                                 "look up word on linguee",
-                                lambda u=url: openUrl(u)
+                                lambda u=result["url"]: openUrl(u)
                             ),
                             Action(
                                 "copy",
                                 "Copy url to clipboard",
-                                lambda u=url: setClipboardText(u)
+                                lambda u=result["url"]: setClipboardText(u)
                             ),
                         ],
                     )
@@ -99,8 +95,27 @@ class Plugin(PluginInstance, GeneratorQueryHandler):
             params={"qe": query, "source": "auto", "cw": "820", "ch": "1000"},
             headers={"User-Agent": self.user_agent}
         )
-        return get_results(response.text)
+        return self.get_results(response.text)
 
+    def get_results(self, linguee_response):
+        linguee_response = linguee_response.replace("<span class='sep'>&middot;</span>","")
+        linguee_response = linguee_response.replace("&","#-#")
+        root = ElementTree.fromstring(linguee_response)
+        results = []
+        for item in root:
+            word = get_display_text(item[0][0])
+            translations = []
+            for translation_row in item[1:]:
+                for translation_item in translation_row[0]:
+                    translations.append(get_display_text(translation_item))
+
+            url = "https://www.linguee.de" + (
+                item[0][0].attrib.get("href")
+                or "{}/search?source=auto&query={}".format(self.lang, word)  # if there is no link, construct one
+            )
+            results.append({"word": word, "translations": translations, "url": url})
+
+        return results
 
 def get_display_text(item):
     """return the text of a html element without grammar info"""
@@ -116,18 +131,3 @@ def get_display_text(item):
     return " ".join([p.strip() for p in parts if p != ""])
 
 
-def get_results(linguee_response):
-    linguee_response = linguee_response.replace("<span class='sep'>&middot;</span>","")
-    linguee_response = linguee_response.replace("&","#-#")
-    root = ElementTree.fromstring(linguee_response)
-    results = []
-    for item in root:
-        word = get_display_text(item[0][0])
-        translations = []
-        for translation_row in item[1:]:
-            for translation_item in translation_row[0]:
-                translations.append(get_display_text(translation_item))
-
-        results.append({"word": word, "translations": translations})
-
-    return results
