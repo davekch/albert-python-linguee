@@ -102,22 +102,18 @@ class Plugin(PluginInstance, GeneratorQueryHandler):
         return get_results(response.text)
 
 
+def get_display_text(item):
+    """return the text of a html element without grammar info"""
+    grammar_classes = ["grammar_info", "wordtype"]
+    if any(g in item.get("class", "").split() for g in grammar_classes):
+        return ""
 
-def clean_translation_item(item):
-    # the translation_item contains information like word type etc but we're
-    # only interested in placeholders (like "sth.") so we remove everything else
-    if len(item) == 0:
-        return
+    parts = [item.text or ""]
+    for child in item:
+        parts.append(get_display_text(child))
+        parts.append(child.tail or "")
 
-    remove = []
-    for i in item:
-        if i.attrib["class"] != "placeholder":
-            remove.append(i)
-        else:
-            clean_translation_item(i)  # the structure may be nested
-    for r in remove:
-        item.remove(r)
-
+    return " ".join([p.strip() for p in parts if p != ""])
 
 
 def get_results(linguee_response):
@@ -126,13 +122,11 @@ def get_results(linguee_response):
     root = ElementTree.fromstring(linguee_response)
     results = []
     for item in root:
-        word = item[0][0].text.strip().encode().decode("utf-8")
+        word = get_display_text(item[0][0])
         translations = []
         for translation_row in item[1:]:
             for translation_item in translation_row[0]:
-                clean_translation_item(translation_item)
-                translation = " ".join(tr.strip() for tr in translation_item.itertext()).strip()
-                translations.append(translation)
+                translations.append(get_display_text(translation_item))
 
         results.append({"word": word, "translations": translations})
 
